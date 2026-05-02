@@ -1,0 +1,20 @@
+{
+  "/auth": {
+    "target": "http://localhost:5029",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "warn"
+  },
+  "/users": {
+    "target": "http://localhost:5029",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "warn"
+  },
+  "/tasks": {
+    "target": "http://localhost:5029",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "warn"
+  }
+}

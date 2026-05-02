@@ -1,0 +1,248 @@
+<div class="shell">
+  <header class="topbar">
+    <div class="topbar-inner">
+      <h1 class="title">SoftOne</h1>
+      <nav class="actions">
+        <span class="nav-link-active">Tasks</span>
+        <a routerLink="/tasks/create" class="cta">Create task</a>
+        <button type="button" class="link-btn" (click)="logout()">Sign out</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="content">
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <h2 class="heading">Your tasks</h2>
+          <p class="subhead">Stay on top of what's due — {{ taskCount() }} {{ taskCount() === 1 ? 'task' : 'tasks' }}</p>
+        </div>
+      </div>
+
+      @if (loadError(); as err) {
+        <p class="banner-error" role="alert">{{ err }}</p>
+        <button type="button" class="secondary" (click)="reload()" [disabled]="loading()">
+          Retry
+        </button>
+      } @else if (loading()) {
+        <div class="loading-state">
+          <div class="spinner" aria-hidden="true"></div>
+          <p class="muted">Loading your tasks…</p>
+        </div>
+      } @else if ((tasks()?.length ?? 0) === 0) {
+        <div class="empty-state">
+          <p class="empty-title">Nothing here yet</p>
+          <p class="muted">Create your first task to see it on this board.</p>
+          <a routerLink="/tasks/create" class="empty-cta">Create task</a>
+        </div>
+      } @else {
+        <div class="filter-toolbar" role="search" aria-label="Filter tasks">
+          <div class="filter-field">
+            <label class="filter-label" for="filter-status">Status</label>
+            <select
+              id="filter-status"
+              class="filter-select"
+              [value]="filterStatusSel()"
+              (change)="setStatusFilter($event)">
+              <option value="all">All statuses</option>
+              <option value="0">Pending</option>
+              <option value="1">In progress</option>
+              <option value="2">Completed</option>
+            </select>
+          </div>
+          <div class="filter-field">
+            <label class="filter-label" for="filter-priority">Priority</label>
+            <select
+              id="filter-priority"
+              class="filter-select"
+              [value]="filterPrioritySel()"
+              (change)="setPriorityFilter($event)">
+              <option value="all">All priorities</option>
+              <option value="0">Low</option>
+              <option value="1">Medium</option>
+              <option value="2">High</option>
+            </select>
+          </div>
+          <div class="filter-field filter-field-date">
+            <span class="filter-label">Created date</span>
+            <div class="filter-date-range">
+              <input
+                type="date"
+                class="filter-date"
+                [value]="filterCreatedFrom()"
+                (change)="setCreatedFrom($event)"
+                aria-label="Created on or after"
+              />
+              <span class="filter-date-sep" aria-hidden="true">–</span>
+              <input
+                type="date"
+                class="filter-date"
+                [value]="filterCreatedTo()"
+                (change)="setCreatedTo($event)"
+                aria-label="Created on or before"
+              />
+            </div>
+          </div>
+          <div class="filter-actions">
+            <span class="filter-count">
+              Showing <strong>{{ filteredTasks().length }}</strong> of
+              <strong>{{ taskCount() }}</strong>
+            </span>
+            @if (filtersActive()) {
+              <button type="button" class="filter-clear" (click)="clearFilters()">Clear filters</button>
+            }
+          </div>
+        </div>
+
+        @if (filteredTasks().length === 0) {
+          <div class="filter-empty">
+            <p class="filter-empty-title">No tasks match your filters</p>
+            <p class="muted">Try widening the date range or reset filters.</p>
+            <button type="button" class="secondary filter-empty-btn" (click)="clearFilters()">
+              Clear filters
+            </button>
+          </div>
+        } @else {
+          <div class="task-grid" role="list">
+          @for (task of filteredTasks(); track task.id) {
+            <article
+              class="task-card"
+              role="listitem"
+              [class.task-card-has-overdue]="isTaskOverdue(task)">
+              @if (isTaskOverdue(task)) {
+                <span class="task-overdue-badge" aria-label="Overdue">Overdue</span>
+              }
+              <div class="task-card-top">
+                <h3 class="task-title">{{ task.title }}</h3>
+                <div class="chip-row">
+                  <span [class]="statusChipClass(task.status)">{{ statusText(task.status) }}</span>
+                  <span [class]="priorityChipClass(task.priority)">{{ priorityText(task.priority) }}</span>
+                </div>
+              </div>
+              @if (task.description?.trim()) {
+                <p class="task-description">{{ task.description }}</p>
+              } @else {
+                <p class="task-description task-description-empty">No description</p>
+              }
+              <div class="task-card-footer">
+                <div class="meta">
+                  <span class="meta-label">Due</span>
+                  <span class="meta-value">{{ task.dueDate ? (task.dueDate | date : 'mediumDate') : '—' }}</span>
+                </div>
+                <div class="meta meta-right">
+                  <span class="meta-label">Created</span>
+                  <span class="meta-value">{{ task.createdAt | date : 'MMM d, y • h:mm a' }}</span>
+                </div>
+              </div>
+              <div class="task-actions">
+                <label
+                  class="done-row"
+                  [class.done-row-locked]="task.status === taskCompletedStatus">
+                  <input
+                    type="checkbox"
+                    class="done-input"
+                    [checked]="task.status === taskCompletedStatus"
+                    [disabled]="isTaskMutating(task.id) || task.status === taskCompletedStatus"
+                    (change)="onCompleteToggle(task)"
+                    [attr.aria-label]="
+                      task.status === taskCompletedStatus
+                        ? 'Task completed; cannot be changed'
+                        : 'Mark task complete'
+                    "
+                  />
+                  <span class="done-label">Mark complete</span>
+                </label>
+                <div class="task-actions-buttons">
+                  <button
+                    type="button"
+                    class="btn-edit"
+                    [disabled]="isTaskMutating(task.id) || task.status === taskCompletedStatus"
+                    [attr.title]="editTooltip(task)"
+                    (click)="openEdit(task)">
+                    <svg
+                      class="btn-svg"
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      aria-hidden="true"
+                      focusable="false">
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                      <path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                    </svg>
+                    <span>Edit</span>
+                  </button>
+                  <button
+                    type="button"
+                    class="btn-delete"
+                    [disabled]="isTaskMutating(task.id) || task.status === taskCompletedStatus"
+                    [attr.title]="deleteTooltip(task)"
+                    (click)="openDeleteDialog(task)">
+                    <svg
+                      class="btn-svg"
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      aria-hidden="true"
+                      focusable="false">
+                      <path d="M3 6h18" />
+                      <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+                      <path d="M10 11v6M14 11v6" />
+                    </svg>
+                    <span>Delete</span>
+                  </button>
+                </div>
+              </div>
+            </article>
+          }
+        </div>
+        }
+      }
+    </div>
+  </main>
+
+  @if (deleteDialogTask(); as d) {
+    <div class="modal-overlay" role="presentation" (click)="cancelDeleteDialog()"></div>
+    <div
+      class="modal-shell"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="delete-dialog-title">
+      <div class="modal-card">
+        <div class="modal-accent" aria-hidden="true"></div>
+        <div class="modal-inner">
+          <p class="modal-eyebrow">Remove task</p>
+          <h3 class="modal-title" id="delete-dialog-title">Delete this task?</h3>
+          <p class="modal-text">
+            <span class="modal-task-name">{{ d.title }}</span> will be removed from your board. You will not be able
+            to recover it from here.
+          </p>
+          <div class="modal-actions">
+            <button type="button" class="modal-btn-cancel" [disabled]="deleteDialogSubmitting()" (click)="cancelDeleteDialog()">
+              Cancel
+            </button>
+            <button
+              type="button"
+              class="modal-btn-delete"
+              [disabled]="deleteDialogSubmitting()"
+              (click)="confirmDeleteFromDialog()">
+              {{ deleteDialogSubmitting() ? 'Deleting…' : 'Delete task' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+</div>

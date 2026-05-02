@@ -1,0 +1,6 @@
+@if (toast.message(); as msg) {
+  <div class="toast-host" role="status" aria-live="polite">
+    <div class="toast">{{ msg }}</div>
+  </div>
+}
+<router-outlet />

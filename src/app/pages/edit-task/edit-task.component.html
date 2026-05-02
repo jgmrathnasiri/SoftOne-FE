@@ -1,0 +1,79 @@
+<div class="shell">
+  <header class="topbar">
+    <div class="topbar-inner">
+      <h1 class="title">SoftOne</h1>
+      <nav class="actions">
+        <a routerLink="/home" class="nav-link">Tasks</a>
+        <button type="button" class="link-btn" (click)="logout()">Sign out</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="content">
+    <div class="panel">
+      <h2 class="heading">Edit task</h2>
+      @if (formError(); as fe) {
+        <p class="banner-error" role="alert">{{ fe }}</p>
+      }
+
+      <form [formGroup]="form" class="task-form" (ngSubmit)="onSubmit()" novalidate>
+        <label class="field">
+          <span class="label">Title<span class="required">*</span></span>
+          <input
+            class="input"
+            type="text"
+            formControlName="title"
+            maxlength="200"
+            placeholder="Short description of the task"
+          />
+          @if (form.controls.title.touched && form.controls.title.hasError('required')) {
+            <span class="field-error">Title is required.</span>
+          }
+        </label>
+
+        <label class="field">
+          <span class="label">Description</span>
+          <textarea class="textarea" rows="4" formControlName="description" placeholder="Optional details"></textarea>
+        </label>
+
+        <label class="field">
+          <span class="label">Status<span class="required">*</span></span>
+          <select class="input" formControlName="status">
+            @for (opt of statusOptions; track opt.value) {
+              <option [ngValue]="opt.value">{{ opt.label }}</option>
+            }
+          </select>
+        </label>
+
+        <label class="field">
+          <span class="label">Priority<span class="required">*</span></span>
+          <select class="input" formControlName="priority">
+            @for (opt of priorityOptions; track opt.value) {
+              <option [ngValue]="opt.value">{{ opt.label }}</option>
+            }
+          </select>
+        </label>
+
+        <label class="field">
+          <span class="label">Due date<span class="required">*</span></span>
+          <input class="input" type="date" formControlName="dueDate" [min]="minDueDateIso" required />
+          @if (form.controls.dueDate.touched && form.controls.dueDate.invalid) {
+            @if (form.controls.dueDate.hasError('required')) {
+              <span class="field-error">Due date is required.</span>
+            }
+            @if (form.controls.dueDate.hasError('dueBeforeToday')) {
+              <span class="field-error">Due date cannot be before today.</span>
+            }
+          }
+        </label>
+
+        <div class="form-actions">
+          <button type="button" class="secondary" routerLink="/home">Cancel</button>
+          <button type="submit" class="primary" [disabled]="form.invalid || submitting()">
+            {{ submitting() ? 'Saving…' : 'Save changes' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </main>
+</div>

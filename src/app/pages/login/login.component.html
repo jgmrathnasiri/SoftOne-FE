@@ -1,0 +1,45 @@
+<div class="login-page">
+  <div class="login-card" role="main">
+    <header class="login-header">
+      <h1 class="brand">SoftOne</h1>
+      <p class="subtitle">Sign in to continue</p>
+    </header>
+
+    @if (bannerError(); as msg) {
+      <p class="banner banner-error" role="alert">{{ msg }}</p>
+    }
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="login-form" novalidate>
+      <label class="field">
+        <span class="label">Username</span>
+        <input
+          type="text"
+          formControlName="username"
+          autocomplete="username"
+          placeholder="Your username"
+          class="input"
+        />
+      </label>
+      @if (form.controls.username.touched && form.controls.username.invalid) {
+        <p class="field-error" role="alert">Username is required.</p>
+      }
+
+      <label class="field">
+        <span class="label">Password</span>
+        <input
+          type="password"
+          formControlName="password"
+          autocomplete="current-password"
+          placeholder="••••••••"
+          class="input"
+        />
+      </label>
+      @if (form.controls.password.touched && form.controls.password.invalid) {
+        <p class="field-error" role="alert">Password is required.</p>
+      }
+
+      <button type="submit" class="submit" [disabled]="form.invalid || busy()">
+        {{ busy() ? 'Signing in…' : 'Sign in' }}
+      </button>
+    </form>
+  </div>
+</div>
